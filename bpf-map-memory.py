@@ -37,7 +37,9 @@ import glob
 import logging
 import os
 import re
+import shutil
 import subprocess
+import sys
 
 # Size of CT key: 38
 # Size of CT entry: 56
@@ -62,6 +64,19 @@ LIMIT_TABLE_MAX = 1 << 24
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(os.path.basename(__file__))
+
+
+def precheck():
+    if not shutil.which("bpftool"):
+        print("bpftool not found! Please install it (`zypper install bpftool`)",
+              file=sys.stderr)
+        sys.exit(1)
+    if not os.environ.get("KUBECONFIG"):
+        print("KUBECONFIG environment variable is not set. Please set it, "
+              "using a path to a valid Kubernetes client configuration as a "
+              "value. Example:\n  export KUBECONFIG=/etc/kubernetes/admin.conf",
+              file=sys.stderr)
+        sys.exit(1)
 
 
 def get_configmap(field: str, klass: type):
@@ -207,6 +222,8 @@ def main():
     if not args.debug:
         # Disable logger entirely.
         log.propagate = False
+
+    precheck()
 
     try:
         dynamic_size_ratio = get_configmap("bpf-map-dynamic-size-ratio", float)
